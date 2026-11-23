@@ -1,0 +1,56 @@
+[
+  {
+    "recording": "alert-fallback",
+    "banks": {"P": [9, 8, 9]},
+    "views": [
+      {"name": "A", "bank_name": "P", "start": 0, "stride": 1, "count": 1, "width": 1, "byteorder": "little"},
+      {"name": "B", "bank_name": "P", "start": 1, "stride": 1, "count": 1, "width": 1, "byteorder": "little"},
+      {"name": "WATCH", "bank_name": "P", "start": 0, "stride": 1, "count": 3, "width": 1, "byteorder": "little"}
+    ],
+    "selection": ["A", "B"],
+    "observation_name": "WATCH",
+    "threshold": 9,
+    "selected_hex": "0908",
+    "before_values": [9, 8, 9],
+    "before_alarm": 0,
+    "trials": [
+      {"requests": [["A", 0, 0]], "after_values": [0, 8, 9], "after_alarm": 2},
+      {"requests": [["A", 0, 0], ["B", 0, 9]], "after_values": [0, 9, 9], "after_alarm": 1}
+    ]
+  },
+  {
+    "recording": "alert-no-fallback",
+    "banks": {"P": [9, 8, 8]},
+    "views": [
+      {"name": "A", "bank_name": "P", "start": 0, "stride": 1, "count": 1, "width": 1, "byteorder": "little"},
+      {"name": "B", "bank_name": "P", "start": 1, "stride": 1, "count": 1, "width": 1, "byteorder": "little"},
+      {"name": "WATCH", "bank_name": "P", "start": 0, "stride": 1, "count": 3, "width": 1, "byteorder": "little"}
+    ],
+    "selection": ["A", "B"],
+    "observation_name": "WATCH",
+    "threshold": 9,
+    "selected_hex": "0908",
+    "before_values": [9, 8, 8],
+    "before_alarm": 0,
+    "trials": [
+      {"requests": [["A", 0, 0]], "after_values": [0, 8, 8], "after_alarm": null}
+    ]
+  },
+  {
+    "recording": "alert-reverse-overlap",
+    "banks": {"P": [9, 8, 9]},
+    "views": [
+      {"name": "MID", "bank_name": "P", "start": 1, "stride": 1, "count": 1, "width": 1, "byteorder": "little"},
+      {"name": "WATCH", "bank_name": "P", "start": 1, "stride": -1, "count": 2, "width": 2, "byteorder": "little"}
+    ],
+    "selection": ["MID"],
+    "observation_name": "WATCH",
+    "threshold": 2313,
+    "selected_hex": "08",
+    "before_values": [2312, 2057],
+    "before_alarm": null,
+    "trials": [
+      {"requests": [["MID", 0, 9]], "after_values": [2313, 2313], "after_alarm": 0}
+    ]
+  }
+]

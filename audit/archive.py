@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from audit.readings import read_package_values, read_source_values
 from audit.totals import ViewTotals, summarize_values
 from capture.catalog import RecordingCatalog
+from handover.alert import first_alert_index
 from offline.revisions import RevisionStore
 from views.registry import ViewRegistry
 
@@ -46,3 +47,17 @@ def read_audit(store: RevisionStore, package_id: str) -> AuditRecord:
         for view in payload.views
     )
     return AuditRecord(revision.package_id, revision.parent_id, views)
+
+
+def read_first_alert(
+    store: RevisionStore, package_id: str,
+) -> tuple[str, int, int | None]:
+    revision = store.get(package_id)
+    evidence = revision.package.alert
+    if evidence is None:
+        raise ValueError(f'package {package_id!r} is not a first-alert package')
+    return (
+        evidence.observation_name,
+        evidence.threshold,
+        first_alert_index(revision.package.payload, evidence),
+    )

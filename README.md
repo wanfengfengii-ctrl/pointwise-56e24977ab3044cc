@@ -27,6 +27,7 @@ python3 -B demo.py
 5. `offline.accept.accept_package(store, wire)` 校验并保存交班件，返回父件号。反复接纳同件可复领。已有件号锁定包版本、出处、视图和载荷。
 6. `offline.settle.correct_package(store, parent_id, requests)` 接收由 `offline.corrections.CorrectionRequest` 组成的非空批次。每项给出 `view_name`、零起算 `element_index` 和整数 `value`。成功返回子件号和 `StoredReceipt`，后续可经 `store.get_receipt(child_id)` 复领。
 7. `audit.archive.read_audit(store, package_id)` 按固定顺序读取明确件号。`audit.compare.compare_audits(store, parent_id, child_id)` 核对直接父子关系后返回原序双方明细、统计和精确子减父和值差。
+8. `handover.issue.issue_alert_package(catalog, registry, index, recording_id, names, observation_name, threshold)` 在普通发行之外另行签发首告警交班件，返回相同的 `IssuedPackage`。`audit.archive.read_first_alert(store, package_id)` 返回 `(observation_name, threshold, first_index)`，供夜班凭件号复核与复领。
 
 未知录制、视图或件号抛出 `KeyError`，无效定义、越界、无效件、重复冲突或错误父子配对抛出 `ValueError`。字节要求矛盾使用其子类 `ByteConflict`。SQLite 写入错误由入口传播。更正的 `before_commit` 可用于验证事务回滚，回调在两项写入之后、提交之前执行，回调应返回或抛出异常。
 
@@ -37,5 +38,7 @@ python3 -B demo.py
 交班件载荷仅包含选单覆盖的物理字节。同一存储区偏移在所有视图及元素中共享，不同原位置独立。隔离端在同一父件上计算所有更正的写入要求，同位同值可以合并，矛盾则拒绝整批。更正保留父件，用新的固定件号和同事务提交的回执发布子件。
 
 包是 UTF-8 JSON，外层字段为 `version`、`body` 和 `sha256`。摘要为 `version` 与 `body` 组成的对象使用 ASCII 转义、键排序及紧凑分隔符编码后的 SHA-256 十六进制。摘要用于检验传输内容完整性。当前版本 2 的 `body` 含 `id`、`recording`、全件 Base64 `data` 和有序 `views`。每个视图含 `name`、`width`、`byteorder` 与 `elements`，后者按逻辑顺序列出每个元素的包内字节索引。旧版本 1 的 `body` 含相同的 `id`、`recording` 和 `views`，载荷以各视图的 Base64 `data` 内联。旧视图的每个内联字节占独立位置，接纳后仍可正常更正和复领。
+
+首告警交班使用版本 3，`body` 与版本 2 相同，另有 `alert` 对象：`observation`（观察名）、`threshold`、`width`、`byteorder` 及按逻辑顺序排列的 `elements`。每个元素为 `refs`（与宽度等长的数组，交付字节给出版本 2 的包内索引，留站字节为 `null`）和 `limit`。夜班以 `refs` 已交付字节按地址序组成整数，与该元素的 `limit` 比较；整件无元素的整数大于或等于门槛时无告警。`limit` 把未交付字节的已知贡献折入其中，因此仅凭实收件即可裁决，且不携带任何未选原字节或完整观察明细。版本 1、2 及版本 3 中被更正派生并保留证据的子件各有独立件号与载荷。
 
 样例中 P 为 `[1,2,3,239,173]`，Q 为 `[1,2]`。选 A、B、C 时，交班件只保留 P 前三字节和 Q 两字节。父件读数为 `[513,515,513]`。更正 A 为 1025 后，子件为 `[1025,1027,513]`，和值差为 `[512,512,0]`。同批要求 B 为 1283 会与 A 的共享字节要求冲突。原回归另核对反向视图、同视图重叠和 65537 的精确和值。

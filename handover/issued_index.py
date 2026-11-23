@@ -26,6 +26,17 @@ class IssuedIndex:
                 PRIMARY KEY (recording_id, selection_key)
             )
         ''')
+        self._db.execute('''
+            CREATE TABLE IF NOT EXISTS issued_alert_packages (
+                recording_id TEXT NOT NULL REFERENCES recordings(recording_id),
+                selection_key TEXT NOT NULL,
+                observation_name TEXT NOT NULL,
+                threshold INTEGER NOT NULL,
+                package_id TEXT NOT NULL UNIQUE,
+                wire BLOB NOT NULL,
+                PRIMARY KEY (recording_id, selection_key, observation_name, threshold)
+            )
+        ''')
 
     @staticmethod
     def _key(selection: ResolvedSelection) -> tuple[str, str]:
@@ -48,4 +59,30 @@ class IssuedIndex:
                 INSERT INTO issued_packages (recording_id, selection_key, package_id, wire)
                 VALUES (?, ?, ?, ?)
             ''', (*self._key(selection), issued.package_id, issued.wire))
+        return issued
+
+    def find_alert(
+        self, selection: ResolvedSelection, observation_name: str, threshold: int,
+    ) -> IssuedPackage | None:
+        row = self._db.execute('''
+            SELECT package_id, wire FROM issued_alert_packages
+            WHERE recording_id = ? AND selection_key = ?
+              AND observation_name = ? AND threshold = ?
+        ''', (*self._key(selection), observation_name, threshold)).fetchone()
+        return IssuedPackage(*row) if row is not None else None
+
+    def store_alert(
+        self, selection: ResolvedSelection, observation_name: str, threshold: int,
+        issued: IssuedPackage,
+    ) -> IssuedPackage:
+        with self._db:
+            self._db.execute('BEGIN IMMEDIATE')
+            previous = self.find_alert(selection, observation_name, threshold)
+            if previous is not None:
+                return previous
+            self._db.execute('''
+                INSERT INTO issued_alert_packages (
+                    recording_id, selection_key, observation_name, threshold, package_id, wire
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            ''', (*self._key(selection), observation_name, threshold, issued.package_id, issued.wire))
         return issued

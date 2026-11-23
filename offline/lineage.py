@@ -1,12 +1,21 @@
 from uuid import uuid4
 
+from handover.alert import AlertEvidence
 from handover.format import PackageEnvelope
 from handover.payload import SelectedPayload
 from offline.revisions import RevisionSnapshot, StoredReceipt
 
 
-def new_child_record(parent: RevisionSnapshot, payload: SelectedPayload) -> RevisionSnapshot:
-    package = PackageEnvelope('rev-' + uuid4().hex, parent.package.recording_id, payload)
+def new_child_record(
+    parent: RevisionSnapshot, payload: SelectedPayload,
+    alert: AlertEvidence | None = None,
+) -> RevisionSnapshot:
+    if alert is None:
+        alert = parent.package.alert
+    package = PackageEnvelope(
+        'rev-' + uuid4().hex, parent.package.recording_id, payload,
+        wire_version=3 if alert is not None else 2, alert=alert,
+    )
     return RevisionSnapshot(package, parent.package_id)
 
 
